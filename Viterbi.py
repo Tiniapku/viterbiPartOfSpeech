@@ -1,7 +1,7 @@
 from collections import defaultdict, Counter
 #import numpy as np
 import sys
-import re
+#import re
 
 class solution(object):
     def __init__(self):
@@ -25,7 +25,7 @@ class solution(object):
         emi_p = 1.0 / self.word_count
         V = [{}]
         for st in self.states:
-            V[0][st] = {"prob": self.initial_prob.get(st, ini_p) * self.emit_prob[st].get(obs[0], emi_p), "prev": "BOS"}
+            V[0][st] = {"prob": self.initial_prob.get(st, ini_p) * self.emit_prob[st].get(obs[0], emi_p), "prev": None}
 
         for t in range(1, len(obs)):
             V.append({})
@@ -54,6 +54,7 @@ class solution(object):
             opt.insert(0, V[t + 1][previous]["prev"])
             previous = V[t + 1][previous]["prev"]
         self.res += opt
+        return opt
 
     def test(self, fileName):
         golden = []
@@ -87,8 +88,12 @@ class solution(object):
                         most_freq.append(self.frequency[word].most_common(1)[0][0])
                     else:
                         most_freq.append(self.initial_prob.most_common(1)[0][0])
-                self.viterbi(obs)
+                opt = self.viterbi(obs)
                 golden += result
+                #print "***********************************************"
+                #print obs
+                #print result
+                #print opt
         wrong_viterbi_pair = Counter()
         count_viterbi = 0
         count_freq = 0
@@ -102,7 +107,7 @@ class solution(object):
         #print "golden result: ", golden
         #print "viterb result: ", self.res
         #print "freque result: ", most_freq
-        #print wrong_viterbi_pair
+        print wrong_viterbi_pair
         print "The accuracy of viterbi algorithm is ", count_viterbi * 1.0 / len(self.res)
         print "The accuracy of frequency is ", count_freq * 1.0 / len(self.res)
 
