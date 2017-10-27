@@ -1,7 +1,8 @@
 from collections import defaultdict, Counter
 #import numpy as np
 import sys
-import re
+#import re
+from nltk.stem.porter import *
 
 class solution(object):
     def __init__(self):
@@ -14,6 +15,7 @@ class solution(object):
         self.res = []
         self.total_tag_count = 0
         self.punctuations = ['.', ',', '?', '!', '``', "''"]
+        self.ps = PorterStemmer()
 
     def viterbi(self, obs):
         # for add one smooth:
@@ -67,10 +69,7 @@ class solution(object):
                 for entry in line:
                     entry = entry.replace("\/", "")
                     entry = entry.replace("*", "")
-                    if entry.find('/') == -1:
-                        word = entry[:-2]
-                        tag = entry[-2:]
-                    elif entry.count("/") == 2:
+                    if entry.count("/") == 2:
                         if "-" in entry:
                             e1, entry = entry.split("-")
                         elif "&" in entry:
@@ -78,9 +77,14 @@ class solution(object):
                         else:
                             continue
                         w, t = e1.split("/")
+                        w = self.ps.stem(w)
                         obs.append(w)
                         result.append(t)
-                    word, tag = entry.split("/")
+                        word, tag = entry.split("/")
+                        word = self.ps.stem(word)
+                    else:
+                        word, tag = entry.split("/")
+                        word = self.ps.stem(word)
                     obs.append(word)
                     result.append(tag)
                     if word in self.frequency:
@@ -102,7 +106,7 @@ class solution(object):
         #print "golden result: ", golden
         #print "viterb result: ", self.res
         #print "freque result: ", most_freq
-        #print wrong_viterbi_pair
+        print wrong_viterbi_pair
         print "The accuracy of viterbi algorithm is ", count_viterbi * 1.0 / len(self.res)
         print "The accuracy of frequency is ", count_freq * 1.0 / len(self.res)
 
@@ -110,6 +114,7 @@ class solution(object):
     def count(self, fileName, smooth_method):
         self.word.add("BOS")
         self.states.add("BOS")
+        self.emit_add_one = {}
         with open(fileName, 'r') as inputFile:
             for line in inputFile.readlines():
                 line = line.strip().split(" ")
@@ -118,7 +123,7 @@ class solution(object):
                     entry = entry.replace("\/", "")
                     entry = entry.replace("*","")
                     if entry.find('/') == -1:
-                        word = entry[:-2]
+                        word = self.ps.stem(entry[:-2])
                         tag = entry[-2:]
                     elif entry.count("/") == 2:
                         if "-" in entry:
@@ -128,6 +133,7 @@ class solution(object):
                         else:
                             continue
                         w, t = e1.split("/")
+                        w = self.ps.stem(w)
                         self.word.add(w)
                         self.states.add(t)
                         self.initial_prob[t] += 1
@@ -136,8 +142,11 @@ class solution(object):
                         self.frequency[w][t] += 1
                         pre_tag = t
                         self.total_tag_count += 1
+                        word, tag = entry.split("/")
+                        word = self.ps.stem(word)
                     else:
                         word, tag = entry.split("/")
+                        word = self.ps.stem(word)
                     self.word.add(word)
                     self.states.add(tag)
                     self.initial_prob[tag] += 1
@@ -174,9 +183,11 @@ class solution(object):
                     di[key] = (di[key] + 1) * 1.0 / (s + len(di))
                 else:
                     di[key] /= s * 1.0
+            self.emit_add_one[k] = 1.0 / (s + len(di))
             self.emit_prob[k] = di
         #print self.emit_prob
         self.emit_prob["BOS"] = {"BOS": 1.0}
+        #self.emit_add_one["BOS"] = 1.0 / self.word_count
 if __name__ == "__main__":
     trainFile = sys.argv[1]
     testFile = sys.argv[2]
