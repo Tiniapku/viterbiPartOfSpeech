@@ -12,31 +12,46 @@ class solution(object):
         self.emit_prob = defaultdict(Counter) # length = tag_list * {}
         self.frequency = defaultdict(Counter) # word: tag: frequency
         self.res = []
+        self.total_tag_count = 0
+        self.punctuations = ['.', ',', '?', '!', '``', "''"]
 
     def viterbi(self, obs):
+        # for add one smooth:
+        # initial_prob: P(tag) = 1 / self.tag_count
+        # trans_prob: P(tag1 | tag2) = 1 / self.tag_count
+        # emit_prob: P(word | tag) = 1 / self.word_count
+        ini_p = 1.0 / self.tag_count
+        tra_p = 1.0 / self.tag_count
+        emi_p = 1.0 / self.word_count
         V = [{}]
         for st in self.states:
-            V[0][st] = {"prob": self.initial_prob[st] * self.emit_prob[st][obs[0]], "prev": "BOS"}
+            V[0][st] = {"prob": self.initial_prob.get(st, ini_p) * self.emit_prob[st].get(obs[0], emi_p), "prev": "BOS"}
 
         for t in range(1, len(obs)):
             V.append({})
             for st in self.states:
-                max_tr_prob = max(V[t - 1][prev_st]["prob"] * self.trans_prob[prev_st][st] for prev_st in self.states)
+                max_tr_prob = max(V[t - 1][prev_st]["prob"] * self.trans_prob[prev_st].get(st, tra_p) for prev_st in self.states)
                 for prev_st in self.states:
-                    if V[t - 1][prev_st]["prob"] * self.trans_prob[prev_st][st] == max_tr_prob:
-                        max_prob = max_tr_prob * self.emit_prob[st][obs[t]]
+                    if V[t - 1][prev_st]["prob"] * self.trans_prob[prev_st].get(st, tra_p) == max_tr_prob:
+                        max_prob = max_tr_prob * self.emit_prob[st].get(obs[t], emi_p)
                         V[t][st] = {"prob": max_prob, "prev": prev_st}
                         break
         opt = []
-        max_prob = max(value["prob"] for value in V[-1].values())
         previous = "BOS"
-        for st, data in V[-1].items():
-            if data["prob"] == max_prob:
-                opt.append(st)
-                previous = st
-                break
+        if obs[-1] in self.punctuations:
+            opt.append(obs[-1])
+        else:
+            max_prob = max(value["prob"] for value in V[-1].values())
+            for st, data in V[-1].items():
+                if data["prob"] == max_prob:
+                    opt.append(st)
+                    previous = st
+                    break
         for t in range(len(V) - 2, -1, -1):
-            opt.insert(0, V[t + 1][previous]["prev"])
+            if obs[t] in self.punctuations:
+                opt.insert(0, obs[t])
+            else:
+                opt.insert(0, V[t + 1][previous]["prev"])
             previous = V[t + 1][previous]["prev"]
         self.res += opt
 
@@ -73,21 +88,25 @@ class solution(object):
                         most_freq.append(self.initial_prob.most_common(1)[0][0])
                 self.viterbi(obs)
                 golden += result
+        wrong_viterbi_pair = Counter()
         count_viterbi = 0
         count_freq = 0
         for i in xrange(len(self.res)):
             if self.res[i] == golden[i]:
                 count_viterbi += 1
+            else:
+                wrong_viterbi_pair[(self.res[i], golden[i])] += 1
             if most_freq[i] == golden[i]:
                 count_freq += 1
         #print "golden result: ", golden
         #print "viterb result: ", self.res
         #print "freque result: ", most_freq
+        print wrong_viterbi_pair
         print "The accuracy of viterbi algorithm is ", count_viterbi * 1.0 / len(self.res)
         print "The accuracy of frequency is ", count_freq * 1.0 / len(self.res)
 
 
-    def count(self, fileName):
+    def count(self, fileName, smooth_method):
         self.word.add("BOS")
         self.states.add("BOS")
         with open(fileName, 'r') as inputFile:
@@ -115,6 +134,7 @@ class solution(object):
                         self.emit_prob[t][w] += 1
                         self.frequency[w][t] += 1
                         pre_tag = t
+                        self.total_tag_count += 1
                     else:
                         word, tag = entry.split("/")
                     self.word.add(word)
@@ -124,29 +144,42 @@ class solution(object):
                     self.emit_prob[tag][word] += 1
                     self.frequency[word][tag] += 1
                     pre_tag = tag
+                    self.total_tag_count += 1
 
         self.tag_count = len(self.states)
+        self.word_count = len(self.word)
 
         for k in self.initial_prob.keys():
-            self.initial_prob[k] /= self.tag_count * 1.0
+            if smooth_method == "add_one":
+                self.initial_prob[k] = (self.initial_prob[k] + 1) * 1.0 /  (self.total_tag_count + self.tag_count)
+            else:
+                self.initial_prob[k] /= self.total_tag_count * 1.0
 
         for k in self.trans_prob.keys():
             di = self.trans_prob[k]
             s = sum(di.values())
             for key in di.keys():
-                di[key] /= s * 1.0
+                if smooth_method == "add_one":
+                    di[key] = di[key] * 1.0 / (s + self.tag_count)
+                else:
+                    di[key] /= s * 1.0
             self.trans_prob[k] = di
 
         for k in self.emit_prob.keys():
             di = self.emit_prob[k]
             s = sum(di.values())
             for key in di.keys():
-                di[k] /= s * 1.0
+                if smooth_method == "add_one":
+                    di[k] = di[k] * 1.0 / (s + self.word_count)
+                else:
+                    di[k] /= s * 1.0
             self.emit_prob[k] = di
 
 if __name__ == "__main__":
     trainFile = sys.argv[1]
     testFile = sys.argv[2]
     s = solution()
-    s.count(trainFile)
+    print "start train..."
+    s.count(trainFile, "add_one")
+    print "start test..."
     s.test(testFile)
