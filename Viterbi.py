@@ -61,7 +61,7 @@ class solution(object):
         most_freq = []
         with open(fileName, 'r') as testFile:
             for line in testFile.readlines():
-                line = line.strip().split(" ")
+                line = line.strip().lower().split(" ")
                 obs = []
                 #obs.append("BOS")
                 result = []
@@ -81,7 +81,9 @@ class solution(object):
                         w, t = e1.split("/")
                         obs.append(w)
                         result.append(t)
-                    word, tag = entry.split("/")
+                        word, tag = entry.split("/")
+                    else:
+                        word, tag = entry.split("/")
                     obs.append(word)
                     result.append(tag)
                     if word in self.frequency:
@@ -117,7 +119,7 @@ class solution(object):
         self.states.add("BOS")
         with open(fileName, 'r') as inputFile:
             for line in inputFile.readlines():
-                line = line.strip().split(" ")
+                line = line.strip().lower().split(" ")
                 pre_tag = "BOS"
                 for entry in line:
                     entry = entry.replace("\/", "")
@@ -141,6 +143,7 @@ class solution(object):
                         self.frequency[w][t] += 1
                         pre_tag = t
                         self.total_tag_count += 1
+                        word, tag = entry.split("/")
                     else:
                         word, tag = entry.split("/")
                     self.word.add(word)
