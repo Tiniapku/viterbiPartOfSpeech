@@ -30,7 +30,7 @@ class solution(object):
         for t in range(1, len(obs)):
             V.append({})
             for st in self.states:
-                max_tr_prob = max(V[t - 1][prev_st]["prob"] * self.trans_prob[prev_st].get(st, tra_p) for prev_st in self.states)
+                max_tr_prob = max(V[t - 1][prev_st]["prob"] * self.trans_prob.get(prev_st, {st: tra_p}).get(st, tra_p) for prev_st in self.states)
                 for prev_st in self.states:
                     if V[t - 1][prev_st]["prob"] * self.trans_prob[prev_st].get(st, tra_p) == max_tr_prob:
                         max_prob = max_tr_prob * self.emit_prob[st].get(obs[t], emi_p)
@@ -102,7 +102,7 @@ class solution(object):
         #print "golden result: ", golden
         #print "viterb result: ", self.res
         #print "freque result: ", most_freq
-        print wrong_viterbi_pair
+        #print wrong_viterbi_pair
         print "The accuracy of viterbi algorithm is ", count_viterbi * 1.0 / len(self.res)
         print "The accuracy of frequency is ", count_freq * 1.0 / len(self.res)
 
@@ -171,11 +171,12 @@ class solution(object):
             s = sum(di.values())
             for key in di.keys():
                 if smooth_method == "add_one":
-                    di[k] = (di[k] + 1) * 1.0 / (s + len(di))
+                    di[key] = (di[key] + 1) * 1.0 / (s + len(di))
                 else:
-                    di[k] /= s * 1.0
+                    di[key] /= s * 1.0
             self.emit_prob[k] = di
-
+        #print self.emit_prob
+        self.emit_prob["BOS"] = {"BOS": 1.0}
 if __name__ == "__main__":
     trainFile = sys.argv[1]
     testFile = sys.argv[2]
