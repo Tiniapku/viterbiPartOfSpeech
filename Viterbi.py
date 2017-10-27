@@ -2,7 +2,7 @@ from collections import defaultdict, Counter
 #import numpy as np
 import sys
 #import re
-from nltk.stem.porter import *
+from nltk.stem.snowball import SnowballStemmer
 
 class solution(object):
     def __init__(self):
@@ -15,7 +15,7 @@ class solution(object):
         self.res = []
         self.total_tag_count = 0
         self.punctuations = ['.', ',', '?', '!', '``', "''"]
-        self.ps = PorterStemmer()
+        self.ps = SnowballStemmer("english")
 
     def viterbi(self, obs):
         # for add one smooth:
