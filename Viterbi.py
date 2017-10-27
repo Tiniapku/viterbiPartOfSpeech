@@ -38,20 +38,20 @@ class solution(object):
                         break
         opt = []
         previous = "BOS"
-        if obs[-1] in self.punctuations:
-            opt.append(obs[-1])
-        else:
-            max_prob = max(value["prob"] for value in V[-1].values())
-            for st, data in V[-1].items():
-                if data["prob"] == max_prob:
-                    opt.append(st)
-                    previous = st
-                    break
+        #if obs[-1] in self.punctuations:
+            #opt.append(obs[-1])
+        #else:
+        max_prob = max(value["prob"] for value in V[-1].values())
+        for st, data in V[-1].items():
+            if data["prob"] == max_prob:
+                opt.append(st)
+                previous = st
+                break
         for t in range(len(V) - 2, -1, -1):
-            if obs[t] in self.punctuations:
-                opt.insert(0, obs[t])
-            else:
-                opt.insert(0, V[t + 1][previous]["prev"])
+            #if obs[t] in self.punctuations:
+                #opt.insert(0, obs[t])
+            #else:
+            opt.insert(0, V[t + 1][previous]["prev"])
             previous = V[t + 1][previous]["prev"]
         self.res += opt
 
@@ -62,6 +62,7 @@ class solution(object):
             for line in testFile.readlines():
                 line = line.strip().split(" ")
                 obs = []
+                #obs.append("BOS")
                 result = []
                 for entry in line:
                     entry = entry.replace("\/", "")
@@ -160,7 +161,7 @@ class solution(object):
             s = sum(di.values())
             for key in di.keys():
                 if smooth_method == "add_one":
-                    di[key] = di[key] * 1.0 / (s + self.tag_count)
+                    di[key] = (di[key] + 1) * 1.0 / (s + len(di))
                 else:
                     di[key] /= s * 1.0
             self.trans_prob[k] = di
@@ -170,7 +171,7 @@ class solution(object):
             s = sum(di.values())
             for key in di.keys():
                 if smooth_method == "add_one":
-                    di[k] = di[k] * 1.0 / (s + self.word_count)
+                    di[k] = (di[k] + 1) * 1.0 / (s + len(di))
                 else:
                     di[k] /= s * 1.0
             self.emit_prob[k] = di
